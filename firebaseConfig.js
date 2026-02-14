@@ -1,11 +1,7 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps } from "firebase/app";
+import { getDatabase } from "firebase/database";
 import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyC0TGT1ddMFBp8sfkPnNFrSMbxjqahI6kI",
   authDomain: "artoffice-af07c.firebaseapp.com",
@@ -17,6 +13,19 @@ const firebaseConfig = {
   measurementId: "G-PR0GQ5HMBC"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+// 1. Initialize Firebase App
+// We check getApps() to ensure we don't initialize it twice (common Next.js issue)
+let app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+
+// 2. Initialize & Export Database (THIS FIXES YOUR BUILD ERROR)
+export const database = getDatabase(app);
+
+// 3. Initialize Analytics Safely
+// We only run this if 'window' exists (meaning we are in the browser, not the server)
+if (typeof window !== "undefined") {
+  try {
+    getAnalytics(app);
+  } catch (e) {
+    console.log("Analytics skipped (happens during build)");
+  }
+}
