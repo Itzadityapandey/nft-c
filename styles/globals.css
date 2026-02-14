@@ -1,0 +1,83 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #1a1a1a;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.office-floor {
+  position: relative;
+  width: 800px;
+  height: 600px;
+  background-image: url('https://i.imgur.com/3B5y7wM.png'); /* Pixel Office Background */
+  background-size: cover;
+  border: 4px solid #444;
+  margin-top: 20px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+.avatar-container {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  transition: transform 0.2s;
+}
+
+.speech-bubble {
+  position: absolute;
+  bottom: 80px;
+  left: -60px;
+  width: 180px;
+  background: white;
+  color: black;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  text-align: center;
+  display: none;
+  z-index: 100;
+  border: 2px solid #000;
+}
+
+.speech-bubble:after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 90px;
+  border-width: 10px 10px 0;
+  border-style: solid;
+  border-color: white transparent;
+}
+
+.visible { display: block; }
+.bouncing { animation: bounce 0.5s infinite alternate; }
+
+@keyframes bounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(-10px); }
+}
+
+.gallery {
+  margin-top: 50px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  width: 800px;
+}
+
+.nft-card {
+  background: #333;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.nft-card img { width: 100%; border-radius: 4px; }
