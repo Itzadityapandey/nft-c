@@ -13,19 +13,9 @@ const firebaseConfig = {
   measurementId: "G-PR0GQ5HMBC"
 };
 
-// 1. Initialize Firebase App
-// We check getApps() to ensure we don't initialize it twice (common Next.js issue)
 let app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-
-// 2. Initialize & Export Database (THIS FIXES YOUR BUILD ERROR)
 export const database = getDatabase(app);
 
-// 3. Initialize Analytics Safely
-// We only run this if 'window' exists (meaning we are in the browser, not the server)
 if (typeof window !== "undefined") {
-  try {
-    getAnalytics(app);
-  } catch (e) {
-    console.log("Analytics skipped (happens during build)");
-  }
+  try { getAnalytics(app); } catch (e) { console.log("Analytics skipped"); }
 }
