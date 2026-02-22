@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { database } from '../firebaseConfig';
 import { ref, onValue } from "firebase/database";
 import Head from 'next/head';
+import Link from 'next/link';
 import bgImage from '../media/Gemini_Generated_Image_l02bjml02bjml02b.png';
 
 /* ─── CONSTANTS ─────────────────────────────────────────── */
@@ -13,12 +14,12 @@ const COMPANY = {
 };
 
 const AGENTS_CONFIG = [
-  { id: "Creative Director", name: "Director",  seed: "Director",  emoji: "🎨", color: "#ff00aa", position: { top: "20%", left: "50%" }, role: "Visionary" },
-  { id: "Artist",           name: "Artist",    seed: "Artist",    emoji: "🖌️", color: "#00f0ff", position: { top: "50%", left: "18%" }, role: "Painter" },
-  { id: "Manager",          name: "Manager",   seed: "Manager",   emoji: "📦", color: "#00ff88", position: { top: "50%", left: "50%" }, role: "Operations" },
-  { id: "Promoter",         name: "Promoter",  seed: "Promoter",  emoji: "📣", color: "#aa00ff", position: { top: "50%", left: "82%" }, role: "Marketing" },
-  { id: "Publisher",        name: "Publisher", seed: "Publisher", emoji: "🐦", color: "#1da1f2", position: { top: "80%", left: "35%" }, role: "Socials" },
-  { id: "Analyst",          name: "Analyst",   seed: "Analyst",   emoji: "📊", color: "#ffd700", position: { top: "80%", left: "65%" }, role: "Data" },
+  { id: "Creative Director", name: "Director", seed: "Director", emoji: "🎨", color: "#ff00aa", position: { top: "20%", left: "50%" }, role: "Visionary" },
+  { id: "Artist", name: "Artist", seed: "Artist", emoji: "🖌️", color: "#00f0ff", position: { top: "50%", left: "18%" }, role: "Painter" },
+  { id: "Manager", name: "Manager", seed: "Manager", emoji: "📦", color: "#00ff88", position: { top: "50%", left: "50%" }, role: "Operations" },
+  { id: "Promoter", name: "Promoter", seed: "Promoter", emoji: "📣", color: "#aa00ff", position: { top: "50%", left: "82%" }, role: "Marketing" },
+  { id: "Publisher", name: "Publisher", seed: "Publisher", emoji: "🐦", color: "#1da1f2", position: { top: "80%", left: "35%" }, role: "Socials" },
+  { id: "Analyst", name: "Analyst", seed: "Analyst", emoji: "📊", color: "#ffd700", position: { top: "80%", left: "65%" }, role: "Data" },
 ];
 
 const ABOUT_CARDS = [
@@ -45,18 +46,18 @@ const ABOUT_CARDS = [
 ];
 
 const PIPELINE = [
-  { label: "Conceive",  desc: "Director agent generates a unique art concept and brief." },
-  { label: "Create",    desc: "Artist agent renders the piece using diffusion models." },
-  { label: "Curate",    desc: "Manager reviews quality and logs the drop to the database." },
-  { label: "Promote",   desc: "Promoter writes copy and Analyst picks the best timing." },
-  { label: "Publish",   desc: "Publisher posts across platforms and mints the NFT." },
+  { label: "Conceive", desc: "Director agent generates a unique art concept and brief." },
+  { label: "Create", desc: "Artist agent renders the piece using diffusion models." },
+  { label: "Curate", desc: "Manager reviews quality and logs the drop to the database." },
+  { label: "Promote", desc: "Promoter writes copy and Analyst picks the best timing." },
+  { label: "Publish", desc: "Publisher posts across platforms and mints the NFT." },
 ];
 
 const STATS = [
-  { num: "6",    label: "AI Agents" },
+  { num: "6", label: "AI Agents" },
   { num: "24/7", label: "Operation" },
-  { num: "∞",    label: "Creativity" },
-  { num: "0",    label: "Human Input" },
+  { num: "∞", label: "Creativity" },
+  { num: "0", label: "Human Input" },
 ];
 
 const BG = bgImage.src || bgImage;
@@ -65,9 +66,9 @@ const BG = bgImage.src || bgImage;
 
 export default function Home() {
   const [agentStatuses, setAgentStatuses] = useState({});
-  const [gallery, setGallery]             = useState([]);
-  const [isConnected, setIsConnected]     = useState(false);
-  const [lastDropTime, setLastDropTime]   = useState("");
+  const [gallery, setGallery] = useState([]);
+  const [isConnected, setIsConnected] = useState(false);
+  const [lastDropTime, setLastDropTime] = useState("");
   const revealRefs = useRef([]);
 
   /* Firebase live updates */
@@ -90,7 +91,7 @@ export default function Home() {
     fetch("https://raw.githubusercontent.com/Itzadityapandey/nft-c/main/database.json")
       .then(r => r.ok ? r.json() : [])
       .then(d => setGallery(Array.isArray(d) ? [...d].reverse() : []))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   /* Scroll reveal */
@@ -107,11 +108,11 @@ export default function Home() {
   const addReveal = (el) => { if (el && !revealRefs.current.includes(el)) revealRefs.current.push(el); };
 
   /* System state */
-  const systemState  = agentStatuses['System']?.action || 'Sleeping';
-  const isSystemAwake = !['Sleep','Sleeping','Stopped'].includes(systemState);
+  const systemState = agentStatuses['System']?.action || 'Sleeping';
+  const isSystemAwake = !['Sleep', 'Sleeping', 'Stopped'].includes(systemState);
 
   const wakeUp = () => window.open("https://itzadityapandey-ceo.hf.space/wakeup", "_blank");
-  const stop   = () => window.open("https://itzadityapandey-ceo.hf.space/stop",   "_blank");
+  const stop = () => window.open("https://itzadityapandey-ceo.hf.space/stop", "_blank");
 
   return (
     <>
@@ -135,8 +136,8 @@ export default function Home() {
         </div>
 
         <ul className="nav-links">
-          <li><a href="#about">About</a></li>
           <li><a href="#office">Live Office</a></li>
+          <li><Link href="/about">About</Link></li>
           <li><a href="#gallery">Gallery</a></li>
         </ul>
 
@@ -159,7 +160,7 @@ export default function Home() {
 
         <div className="hero-btns">
           <button className="btn-primary" onClick={wakeUp}>🚀 Wake Up Company</button>
-          <button className="btn-secondary" onClick={() => document.getElementById('gallery').scrollIntoView({ behavior:'smooth' })}>
+          <button className="btn-secondary" onClick={() => document.getElementById('gallery').scrollIntoView({ behavior: 'smooth' })}>
             🖼️ View Gallery
           </button>
         </div>
@@ -185,57 +186,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ════════════════════ ABOUT ════════════════════ */}
-      <section id="about" className="section">
-        <div className="section-header" ref={addReveal}>
-          <div className="section-tag reveal" ref={addReveal}>About NEXUS ART</div>
-          <h2 className="section-title reveal" ref={addReveal}>Art made by machines,<br/>loved by humans</h2>
-          <p className="section-desc reveal" ref={addReveal}>
-            NEXUS ART is a first-of-its-kind autonomous studio where every step — from concept to community — is handled by AI.
-          </p>
-          <div className="section-divider" />
-        </div>
-
-        <div className="about-grid">
-          {/* Left – Feature Cards */}
-          <div style={{ display:'flex', flexDirection:'column', gap:'20px' }}>
-            {ABOUT_CARDS.slice(0,2).map(c => (
-              <div className="about-card reveal" key={c.title} ref={addReveal}>
-                <div className="about-card-icon">{c.icon}</div>
-                <div className="about-card-title">{c.title}</div>
-                <div className="about-card-text">{c.text}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Right – Pipeline + remaining cards */}
-          <div style={{ display:'flex', flexDirection:'column', gap:'20px' }}>
-            <div className="about-card reveal" ref={addReveal}>
-              <div className="about-card-icon">⚙️</div>
-              <div className="about-card-title">The Pipeline</div>
-              <div className="pipeline-steps">
-                {PIPELINE.map((step, i) => (
-                  <div className="pipeline-step" key={step.label}>
-                    <div className="step-num">{i + 1}</div>
-                    <div className="step-content">
-                      <h4>{step.label}</h4>
-                      <p>{step.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {ABOUT_CARDS.slice(2).map(c => (
-              <div className="about-card reveal" key={c.title} ref={addReveal}>
-                <div className="about-card-icon">{c.icon}</div>
-                <div className="about-card-title">{c.title}</div>
-                <div className="about-card-text">{c.text}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ════════════════════ LIVE OFFICE ════════════════════ */}
       <section id="office" className="section office-section">
         <div className="section-header">
@@ -252,7 +202,9 @@ export default function Home() {
           </div>
 
           <div className="office-arena-wrap reveal" ref={addReveal}>
-            <img src={BG} alt="AI Office Background" className="bg" />
+            {/* Dark overlay to make agent bubbles pop */}
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(2,0,12,0.58)', zIndex: 1 }} />
+            <img src={BG} alt="AI Office Background" className="bg" style={{ opacity: 0.55 }} />
 
             {AGENTS_CONFIG.map((agent) => {
               let status = agentStatuses[agent.id] || { action: 'Sleeping', message: 'Resting...' };
@@ -267,6 +219,7 @@ export default function Home() {
                   style={{
                     top: agent.position.top,
                     left: agent.position.left,
+                    zIndex: 2,
                     animation: isActive ? 'agentBounce .6s infinite alternate' : 'none',
                   }}
                 >
