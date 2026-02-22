@@ -15,8 +15,8 @@ const AGENTS_CONFIG = [
 ];
 
 const ASSETS = {
-  // Swapped for a vibrant, high-tech neon workspace perfectly suited for AI bots
-  background: "media/Gemini_Generated_Image_l02bjml02bjml02b.png",
+  // Adding the leading slash is key for Next.js routing
+  background: "/media/Gemini_Generated_Image_l02bjml02bjml02b.png",
 };
 
 export default function Home() {
