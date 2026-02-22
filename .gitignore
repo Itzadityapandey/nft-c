@@ -1,0 +1,15 @@
+# Next.js
+.next/
+out/
+
+# Node
+node_modules/
+
+# Env
+.env
+.env.local
+.env*.local
+
+# OS
+.DS_Store
+Thumbs.db
