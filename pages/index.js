@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { database } from '../firebaseConfig'; // Ensure this path is correct
 import { ref, onValue } from "firebase/database";
 import Head from 'next/head';
-
+import bgImage from '../media/Gemini_Generated_Image_l02bjml02bjml02b.png';
 // --- 6 AGENTS CONFIG (Updated to match the Python Code) ---
 // Using percentage-based positioning so it scales on mobile/tablets
 const AGENTS_CONFIG = [
@@ -16,7 +16,7 @@ const AGENTS_CONFIG = [
 
 const ASSETS = {
   // Adding the leading slash is key for Next.js routing
-  background: "https://github.com/Itzadityapandey/nft-c/blob/825210cab38ac8a7f16b6e938ce4a007093a68da/media/Gemini_Generated_Image_l02bjml02bjml02b.png",
+ background: bgImage.src || bgImage,
 };
 
 export default function Home() {
