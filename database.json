@@ -4,5 +4,11 @@
         "image": "https://gateway.pinata.cloud/ipfs/QmW6a9BA2tmnWihJW2474YU593bdBRfim8AUNbwtNTWduR",
         "description": "AI Generated Art #1",
         "date": "2026-02-21 14:23:22"
+    },
+    {
+        "id": 2,
+        "image": "https://gateway.pinata.cloud/ipfs/QmctDNc3AQeU6xtcvp7aAdZnYKV8yXbzCzkuNXc7xZVkpZ",
+        "description": "AI Generated Art #2",
+        "date": "2026-02-22 09:33:24"
     }
 ]
