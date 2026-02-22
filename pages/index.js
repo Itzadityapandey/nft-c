@@ -16,7 +16,7 @@ const AGENTS_CONFIG = [
 
 const ASSETS = {
   // Adding the leading slash is key for Next.js routing
-  background: "/media/Gemini_Generated_Image_l02bjml02bjml02b.png",
+  background: "https://github.com/Itzadityapandey/nft-c/blob/825210cab38ac8a7f16b6e938ce4a007093a68da/media/Gemini_Generated_Image_l02bjml02bjml02b.png",
 };
 
 export default function Home() {
