@@ -8,9 +8,13 @@
     "start": "next start"
   },
   "dependencies": {
+    "@rainbow-me/rainbowkit": "^2.2.10",
+    "@tanstack/react-query": "^5.90.21",
+    "firebase": "latest",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "firebase": "latest"
+    "viem": "^2.46.2",
+    "wagmi": "^2.19.5"
   }
 }

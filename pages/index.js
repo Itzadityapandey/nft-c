@@ -4,6 +4,9 @@ import { ref, onValue } from "firebase/database";
 import Head from 'next/head';
 import Link from 'next/link';
 import bgImage from '../media/Gemini_Generated_Image_l02bjml02bjml02b.png';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount } from 'wagmi';
+import CommissionModal from '../components/CommissionModal';
 
 /* ─── CONSTANTS ─────────────────────────────────────────── */
 
@@ -38,8 +41,11 @@ export default function Home() {
   const [gallery, setGallery] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
   const [lastDropTime, setLastDropTime] = useState("");
-  const [lightbox, setLightbox] = useState(null); // { art, index }
+  const [lightbox, setLightbox] = useState(null);
+  const [showCommission, setShowCommission] = useState(false);
   const revealRefs = useRef([]);
+
+  const { isConnected: walletConnected } = useAccount();
 
   /* Firebase live updates */
   useEffect(() => {
@@ -104,7 +110,7 @@ export default function Home() {
 
   /* Lightbox keyboard close */
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') setLightbox(null); };
+    const handler = (e) => { if (e.key === 'Escape') { setLightbox(null); setShowCommission(false); } };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
@@ -140,11 +146,11 @@ export default function Home() {
       <div className="particles" aria-hidden>
         {Array.from({ length: 20 }).map((_, i) => (
           <span key={i} className="particle" style={{
-            left: `${Math.random() * 100}%`,
-            animationDelay: `${Math.random() * 8}s`,
-            animationDuration: `${6 + Math.random() * 6}s`,
-            width: `${2 + Math.random() * 3}px`,
-            height: `${2 + Math.random() * 3}px`,
+            left: `${(i * 5.1) % 100}%`,
+            animationDelay: `${(i * 0.4) % 8}s`,
+            animationDuration: `${6 + (i % 4)}s`,
+            width: `${2 + (i % 3)}px`,
+            height: `${2 + (i % 3)}px`,
           }} />
         ))}
       </div>
@@ -162,9 +168,52 @@ export default function Home() {
           <li><a href="#gallery">Gallery</a></li>
         </ul>
 
-        <div className={`nav-status ${isConnected ? 'online' : 'offline'}`}>
-          <span className={`status-dot ${isConnected ? 'online' : 'offline'}`} />
-          {isConnected ? "LIVE" : "OFFLINE"}
+        {/* ── Wallet Connect Button ── */}
+        <div className="nav-wallet-area">
+          <div className={`firebase-status ${isConnected ? 'online' : 'offline'}`}>
+            <span className={`status-dot ${isConnected ? 'online' : 'offline'}`} />
+            {isConnected ? "LIVE" : "OFFLINE"}
+          </div>
+
+          <ConnectButton.Custom>
+            {({ account, chain, openAccountModal, openChainModal, openConnectModal, authenticationStatus, mounted }) => {
+              const ready = mounted && authenticationStatus !== 'loading';
+              const connected = ready && account && chain && (!authenticationStatus || authenticationStatus === 'authenticated');
+
+              return (
+                <div
+                  {...(!ready && {
+                    'aria-hidden': true,
+                    style: { opacity: 0, pointerEvents: 'none', userSelect: 'none' },
+                  })}
+                >
+                  {!connected ? (
+                    <button className="wallet-connect-btn" onClick={openConnectModal}>
+                      <span className="wallet-icon">⬡</span>
+                      Connect Wallet
+                    </button>
+                  ) : chain.unsupported ? (
+                    <button className="wallet-wrong-chain" onClick={openChainModal}>
+                      ⚠ Wrong Network
+                    </button>
+                  ) : (
+                    <div className="wallet-connected-group">
+                      <button className="wallet-chain-btn" onClick={openChainModal}>
+                        {chain.hasIcon && chain.iconUrl && (
+                          <img src={chain.iconUrl} alt={chain.name} style={{ width: 14, height: 14, borderRadius: '50%' }} />
+                        )}
+                        {chain.name}
+                      </button>
+                      <button className="wallet-addr-btn" onClick={openAccountModal}>
+                        🌸 {account.displayName}
+                        {account.displayBalance ? ` · ${account.displayBalance}` : ''}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            }}
+          </ConnectButton.Custom>
         </div>
       </nav>
 
@@ -186,13 +235,28 @@ export default function Home() {
           </button>
         </div>
 
+        {/* ── Commission CTA ── */}
+        <div className="commission-hero-cta">
+          <button
+            className={`commission-orb-btn ${!walletConnected ? 'disabled' : ''}`}
+            onClick={() => walletConnected && setShowCommission(true)}
+            title={!walletConnected ? 'Connect your wallet to commission' : 'Commission a custom NFT'}
+          >
+            <span className="commission-orb-inner">
+              <span className="commission-orb-icon">🎨</span>
+              <span className="commission-orb-text">
+                {walletConnected ? 'Commission the Atelier' : 'Connect Wallet to Commission'}
+              </span>
+              <span className="commission-orb-price">from 0.035 ETH</span>
+            </span>
+            {walletConnected && <span className="commission-orb-ring" />}
+          </button>
+        </div>
+
         <div className="hero-stats">
           {STATS.map(s => (
             <div className="stat-item" key={s.label}>
-              <div
-                className="stat-num"
-                data-target={isNaN(s.num) ? undefined : s.num}
-              >
+              <div className="stat-num" data-target={isNaN(s.num) ? undefined : s.num}>
                 {s.num}
               </div>
               <div className="stat-label">{s.label}</div>
@@ -225,6 +289,13 @@ export default function Home() {
           <div className="office-controls reveal" ref={addReveal}>
             <button className="btn-primary btn-glow" onClick={wakeUp}>🚀 Wake Up Company</button>
             <button className="btn-secondary" onClick={stop}>⏹ Stop All Agents</button>
+            <button
+              className={`btn-commission ${!walletConnected ? 'btn-commission-locked' : ''}`}
+              onClick={() => walletConnected && setShowCommission(true)}
+              title={!walletConnected ? 'Connect wallet to commission' : ''}
+            >
+              {walletConnected ? '🎨 Commission Custom NFT' : '🔒 Connect Wallet to Commission'}
+            </button>
           </div>
 
           <div className="office-arena-wrap reveal" ref={addReveal}>
@@ -234,7 +305,6 @@ export default function Home() {
             {AGENTS_CONFIG.map((agent) => {
               let status = agentStatuses[agent.id] || { action: 'Sleeping', message: 'Resting...' };
               if (!isSystemAwake) status = { action: 'Sleeping', message: 'Resting...' };
-
               const isActive = status.action !== 'Sleeping' && !status.action.toLowerCase().includes('offline');
 
               return (
@@ -254,21 +324,15 @@ export default function Home() {
                       <div className="bubble-msg">{status.message}</div>
                     </div>
                   )}
-
                   <img
                     className={`agent-avatar ${isActive ? 'active' : 'sleeping'}`}
                     style={{ filter: isActive ? `drop-shadow(0 0 12px ${agent.color})` : 'none' }}
                     src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${agent.seed}&backgroundColor=000000&glassesProbability=${agent.id === "Manager" ? 100 : 0}`}
                     alt={agent.name}
                   />
-
-                  <span
-                    className="agent-badge"
-                    style={{ background: agent.color + '22', color: agent.color, border: `1px solid ${agent.color}44` }}
-                  >
+                  <span className="agent-badge" style={{ background: agent.color + '22', color: agent.color, border: `1px solid ${agent.color}44` }}>
                     {agent.emoji} {agent.role}
                   </span>
-
                   <div className="agent-name">{agent.name}</div>
                 </div>
               );
@@ -279,7 +343,6 @@ export default function Home() {
 
       {/* ════════════════════ GALLERY ════════════════════ */}
       <section id="gallery" className="section gallery-section">
-        {/* Floating gallery particles */}
         <div className="gallery-particles" aria-hidden>
           {Array.from({ length: 10 }).map((_, i) => (
             <span key={i} className="g-particle" style={{
@@ -292,9 +355,7 @@ export default function Home() {
 
         <div className="section-header">
           <div className="section-tag reveal" ref={addReveal}>The Collection</div>
-          <h2 className="section-title reveal" ref={addReveal}>
-            🌸 BLOOM NFT Drops
-          </h2>
+          <h2 className="section-title reveal" ref={addReveal}>🌸 BLOOM NFT Drops</h2>
           <p className="section-desc reveal" ref={addReveal}>
             Each piece is autonomously conceived, created, and published. Every image is one-of-a-kind.
           </p>
@@ -303,14 +364,8 @@ export default function Home() {
 
         {gallery.length > 0 ? (
           <div className="gallery-layout">
-            {/* ── FEATURED CARD ── */}
             {featured && (
-              <article
-                className="gallery-featured reveal"
-                ref={addReveal}
-                onClick={() => openLightbox(featured, 0)}
-                style={{ '--delay': '0s' }}
-              >
+              <article className="gallery-featured reveal" ref={addReveal} onClick={() => openLightbox(featured, 0)} style={{ '--delay': '0s' }}>
                 <div className="gallery-featured-img-wrap">
                   <img className="gallery-featured-img" src={featured.image} alt={featured.description || 'Drop #1'} loading="lazy" />
                   <div className="gallery-featured-overlay">
@@ -329,8 +384,6 @@ export default function Home() {
                 </div>
               </article>
             )}
-
-            {/* ── MASONRY SUB-GRID ── */}
             {rest.length > 0 && (
               <div className="gallery-masonry">
                 {rest.map((art, i) => (
@@ -397,6 +450,9 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* ════════════════════ COMMISSION MODAL ════════════════════ */}
+      {showCommission && <CommissionModal onClose={() => setShowCommission(false)} />}
 
       <style jsx>{`
         @keyframes agentBounce {
