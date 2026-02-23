@@ -19,7 +19,7 @@ const ABOUT_CARDS = [
     {
         icon: "🌐",
         title: "Community-First",
-        text: "Collectors get early access, governance votes, and a share of future revenue. NEXUS ART is built for the community, powered by the community.",
+        text: "Collectors get early access, governance votes, and a share of future revenue. BLOOM NFT is built for the community, powered by the community.",
         color: "#9000ff",
     },
     {
@@ -31,7 +31,7 @@ const ABOUT_CARDS = [
     {
         icon: "🎨",
         title: "Infinite Creativity",
-        text: "With no creative blocks, no sleep, and no limits — NEXUS ART can produce dozens of unique artworks per day, each with its own concept and mood.",
+        text: "With no creative blocks, no sleep, and no limits — BLOOM NFT can produce dozens of unique artworks per day, each with its own concept and mood.",
         color: "#ffd700",
     },
     {
@@ -65,14 +65,14 @@ export default function About() {
     return (
         <>
             <Head>
-                <title>About • NEXUS ART</title>
-                <meta name="description" content="Learn about NEXUS ART — the world's first autonomous AI art studio powered by 6 AI agents." />
+                <title>About • BLOOM NFT</title>
+                <meta name="description" content="Learn about BLOOM NFT — the world's first autonomous AI art studio powered by 6 AI agents." />
             </Head>
 
             {/* ── NAVBAR ── */}
             <nav className="navbar">
                 <Link href="/" className="nav-logo">
-                    <span aria-hidden>✦</span> NEXUS ART
+                    <span aria-hidden>🌸</span> BLOOM NFT
                 </Link>
                 <ul className="nav-links">
                     <li><Link href="/#office">Live Office</Link></li>
@@ -86,13 +86,13 @@ export default function About() {
 
             {/* ── HERO ── */}
             <div className="about-page-hero">
-                <div className="hero-badge" style={{ animationDelay: '0s' }}>✦ Our Story</div>
+                <div className="hero-badge" style={{ animationDelay: '0s' }}>🌸 Our Story</div>
                 <h1 className="hero-title" style={{ fontSize: 'clamp(36px,6vw,72px)', marginTop: '16px' }}>
                     <span className="line-1">The Studio</span>
                     <span className="line-2">Behind the Art</span>
                 </h1>
                 <p className="hero-sub" style={{ marginTop: '16px' }}>
-                    NEXUS ART was born from a single question: <em>what if creativity never sleeps?</em>
+                    BLOOM NFT was born from a single question: <em>what if creativity never sleeps?</em>{' '}
                     Six AI agents work around the clock to answer that question — one masterpiece at a time.
                 </p>
             </div>
@@ -106,7 +106,7 @@ export default function About() {
                             Art made by machines,<br />loved by humans
                         </h2>
                         <p style={{ color: 'var(--text-sub)', fontSize: '16px', lineHeight: '1.8', marginBottom: '20px' }}>
-                            NEXUS ART is a first-of-its-kind autonomous studio where every step — from concept to community — is handled entirely by AI. We don't have a human creative team. We have something better: six tireless agents that collaborate, iterate, and evolve with every drop.
+                            BLOOM NFT is a first-of-its-kind autonomous studio where every step — from concept to community — is handled entirely by AI. We don't have a human creative team. We have something better: six tireless agents that collaborate, iterate, and evolve with every drop.
                         </p>
                         <p style={{ color: 'var(--text-sub)', fontSize: '16px', lineHeight: '1.8' }}>
                             Our mission is to push the boundary of machine creativity and make the resulting art accessible, verifiable, and collectible by everyone.
@@ -215,7 +215,7 @@ export default function About() {
 
             {/* ── FOOTER ── */}
             <footer className="footer">
-                <div className="footer-logo">✦ NEXUS ART</div>
+                <div className="footer-logo">🌸 BLOOM NFT</div>
                 <p className="footer-tagline">The World's First Autonomous AI Art Studio</p>
                 <p className="footer-powered">
                     Powered by 6 Autonomous Agents &nbsp;•&nbsp; CrewAI &nbsp;•&nbsp; Gemini &nbsp;•&nbsp; Hugging Face &nbsp;•&nbsp; Firebase
