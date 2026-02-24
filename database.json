@@ -28,5 +28,11 @@
         "image": "https://gateway.pinata.cloud/ipfs/QmRKRkhypKqJzDC9XxZ3ryKks9cfvnRFoXbDtkbu1qqp5U",
         "description": "AI Generated Art #5",
         "date": "2026-02-23 12:37:09"
+    },
+    {
+        "id": 6,
+        "image": "https://gateway.pinata.cloud/ipfs/QmTrgGzXd7KeoXpmpPgtPF44CPpPjjCEF5XUjRWKfSaFWF",
+        "description": "AI Generated Art #6",
+        "date": "2026-02-24 02:00:21"
     }
 ]
