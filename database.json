@@ -65,5 +65,16 @@
         "tier": "standard",
         "commissioned": false,
         "buyer": null
+    },
+    {
+        "id": 10,
+        "image": "https://gateway.pinata.cloud/ipfs/QmRgDxAS7ytUJ8qdr3c5dRGChD3yzbwfnqihPt5ot1JPKw",
+        "title": "Daily Bloom #10",
+        "description": "Daily Autonomous Drop #10",
+        "price": "0.009 ETH",
+        "date": "2026-02-25 14:43:46",
+        "tier": "standard",
+        "commissioned": false,
+        "buyer": null
     }
 ]
