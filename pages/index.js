@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { database } from '../firebaseConfig';
 import { ref, onValue } from "firebase/database";
 import Head from 'next/head';
@@ -7,6 +7,8 @@ import bgImage from '../media/Gemini_Generated_Image_l02bjml02bjml02b.png';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
 import CommissionModal from '../components/CommissionModal';
+import AgentCard from '../components/AgentCard';
+import PollenCanvas from '../components/PollenCanvas';
 
 /* ─── CONSTANTS ─────────────────────────────────────────── */
 
@@ -41,13 +43,30 @@ export default function Home() {
   const [gallery, setGallery] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
   const [lastDropTime, setLastDropTime] = useState("");
+
+  /* In-page toast for wakeup/stop responses */
+  const [toast, setToast] = useState(null); // { type: 'success'|'error'|'info', msg }
+  const showToast = (type, msg) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 5000);
+  };
   const [lightbox, setLightbox] = useState(null);
   const [showCommission, setShowCommission] = useState(false);
+  
+  /* Chat Drip State */
+  const [chatLog, setChatLog] = useState([]);
+  const pendingChat = useRef([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const processedKeys = useRef(new Set());
+  const initialLoadRef = useRef(true);
+
   const revealRefs = useRef([]);
+  const heroTitleRef = useRef(null);
+  const galleryCardsRef = useRef({});
 
   const { isConnected: walletConnected } = useAccount();
 
-  /* Firebase live updates */
+  /* Firebase live updates -> Pending Queue */
   useEffect(() => {
     const officeRef = ref(database, 'office_status');
     return onValue(officeRef, (snap) => {
@@ -55,11 +74,73 @@ export default function Home() {
       if (data) {
         setIsConnected(true);
         setAgentStatuses(data);
+        
+        let newMessages = false;
+        
+        // Add new actions to pending queue
+        Object.keys(data).forEach(agentId => {
+          if (agentId === 'System') return; // Skip system messages in chat
+          
+          const agentData = data[agentId];
+          if (!agentData || agentData.action === 'Sleeping' || agentData.action === 'idle') return;
+          
+          // Create a unique key for this exact message state
+          const msgKey = `${agentId}-${agentData.action}-${agentData.message || ''}`;
+          
+          if (!processedKeys.current.has(msgKey)) {
+            processedKeys.current.add(msgKey);
+            
+            // On initial load, don't queue everything to avoid a massive backlog
+            if (!initialLoadRef.current) {
+              const fullAgentInfo = AGENTS_CONFIG.find(a => a.id === agentId);
+              pendingChat.current.push({
+                id: Math.random().toString(36).substr(2, 9),
+                agent: fullAgentInfo ? fullAgentInfo.name : agentId,
+                color: fullAgentInfo ? fullAgentInfo.color : '#fff',
+                action: agentData.action,
+                message: agentData.message,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              });
+              newMessages = true;
+            }
+          }
+        });
+
+        initialLoadRef.current = false;
+
+        if (newMessages && pendingChat.current.length > 0) {
+          setIsTyping(true);
+        }
+
         if (data.Manager?.action?.includes("Success") || data.Manager?.action?.includes("updated")) {
           setLastDropTime(new Date().toLocaleTimeString());
         }
       }
     }, () => setIsConnected(false));
+  }, []);
+
+  /* Chat Drip Processor (every 5 seconds) */
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (pendingChat.current.length > 0) {
+        // Pop the oldest message
+        const nextMsg = pendingChat.current.shift();
+        
+        setChatLog(prev => {
+          // Keep last 8 messages max so it doesn't grow forever
+          const updated = [...prev, nextMsg];
+          if (updated.length > 8) return updated.slice(updated.length - 8);
+          return updated;
+        });
+        
+        // If more messages are pending, stay typing. Otherwise, stop.
+        setIsTyping(pendingChat.current.length > 0);
+      } else {
+        setIsTyping(false);
+      }
+    }, 5000); // 5 second drip rate
+
+    return () => clearInterval(interval);
   }, []);
 
   /* Gallery from GitHub */
@@ -70,10 +151,53 @@ export default function Home() {
       .catch(() => { });
   }, []);
 
-  /* Scroll reveal */
+  /* Mouse-reactive parallax on hero title */
+  useEffect(() => {
+    const el = heroTitleRef.current;
+    if (!el) return;
+    const onMove = (e) => {
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      const dx = (e.clientX - cx) / cx;   // -1 to 1
+      const dy = (e.clientY - cy) / cy;
+      el.style.transform = `translate(${dx * -10}px, ${dy * -6}px)`;
+    };
+    const onLeave = () => { el.style.transform = ''; };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseleave', onLeave);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseleave', onLeave);
+    };
+  }, []);
+
+  /* 3-D tilt on gallery cards */
+  const handleCardTilt = useCallback((e, id) => {
+    const card = galleryCardsRef.current[id];
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const rx = ((e.clientY - cy) / (rect.height / 2)) * -8;  // ±8 deg
+    const ry = ((e.clientX - cx) / (rect.width / 2)) * 10;
+    card.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-10px) scale(1.02)`;
+  }, []);
+
+  const resetCardTilt = useCallback((id) => {
+    const card = galleryCardsRef.current[id];
+    if (card) card.style.transform = '';
+  }, []);
+
+  /* Scroll reveal — staggered float-up */
   useEffect(() => {
     const io = new IntersectionObserver(
-      (entries) => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }),
+      (entries) => entries.forEach(e => {
+        if (e.isIntersecting) {
+          const idx = revealRefs.current.filter(Boolean).indexOf(e.target);
+          e.target.style.setProperty('--reveal-delay', `${(idx % 6) * 0.1}s`);
+          e.target.classList.add('visible');
+        }
+      }),
       { threshold: 0.08 }
     );
     const cur = revealRefs.current.filter(Boolean);
@@ -120,40 +244,65 @@ export default function Home() {
   const systemState = agentStatuses['System']?.action || 'Sleeping';
   const isSystemAwake = !['Sleep', 'Sleeping', 'Stopped'].includes(systemState);
 
-  const wakeUp = () => window.open("https://itzadityapandey-ceo.hf.space/wakeup", "_blank");
-  const stop = () => window.open("https://itzadityapandey-ceo.hf.space/stop", "_blank");
+  const HF_BASE = "https://itzadityapandey-ceo.hf.space";
+
+  const wakeUp = async () => {
+    showToast('info', '🚀 Sending wake-up signal to the Atelier...');
+    try {
+      const res = await fetch(`${HF_BASE}/wakeup`);
+      const text = await res.text();
+      showToast(res.ok ? 'success' : 'error', text);
+    } catch (e) {
+      showToast('error', `⚠️ Could not reach backend: ${e.message}`);
+    }
+  };
+
+  const stop = async () => {
+    showToast('info', '⏹ Sending stop signal...');
+    try {
+      const res = await fetch(`${HF_BASE}/stop`);
+      const text = await res.text();
+      showToast(res.ok ? 'success' : 'error', text);
+    } catch (e) {
+      showToast('error', `⚠️ Could not reach backend: ${e.message}`);
+    }
+  };
 
   const openLightbox = (art, index) => setLightbox({ art, index });
   const closeLightbox = () => setLightbox(null);
 
   const [featured, ...rest] = gallery;
 
+  /* Active agents for Bloom Sequence sidebar */
+  const activeAgents = AGENTS_CONFIG.filter(a => {
+    const s = agentStatuses[a.id];
+    return isSystemAwake && s && s.action !== 'Sleeping' && s.action !== 'idle' && !s.action.toLowerCase().includes('offline');
+  });
+
   return (
     <>
       <Head>
+
         <title>BLOOM NFT • Autonomous AI Art Studio</title>
         <meta name="description" content="6 AI agents that create, curate, and publish original art — 24/7 with zero human input." />
         <meta property="og:title" content="BLOOM NFT • Autonomous AI Art Studio" />
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>" />
       </Head>
 
+      {/* ── IN-PAGE WAKEUP TOAST ── */}
+      {toast && (
+        <div className={`site-toast site-toast--${toast.type}`}>
+          <span className="toast-msg">{toast.msg}</span>
+          <button className="toast-close" onClick={() => setToast(null)}>✕</button>
+        </div>
+      )}
+
       {/* ── BACKGROUND ORBS ── */}
       <div className="bg-orbs" aria-hidden>
         <span /><span /><span />
       </div>
 
-      {/* ── FLOATING PARTICLES ── */}
-      <div className="particles" aria-hidden>
-        {Array.from({ length: 20 }).map((_, i) => (
-          <span key={i} className="particle" style={{
-            left: `${(i * 5.1) % 100}%`,
-            animationDelay: `${(i * 0.4) % 8}s`,
-            animationDuration: `${6 + (i % 4)}s`,
-            width: `${2 + (i % 3)}px`,
-            height: `${2 + (i % 3)}px`,
-          }} />
-        ))}
-      </div>
+      <PollenCanvas />
 
       {/* ════════════════════ NAVBAR ════════════════════ */}
       <nav className="navbar">
@@ -168,7 +317,6 @@ export default function Home() {
           <li><a href="#gallery">Gallery</a></li>
         </ul>
 
-        {/* ── Wallet Connect Button ── */}
         <div className="nav-wallet-area">
           <div className={`firebase-status ${isConnected ? 'online' : 'offline'}`}>
             <span className={`status-dot ${isConnected ? 'online' : 'offline'}`} />
@@ -188,10 +336,12 @@ export default function Home() {
                   })}
                 >
                   {!connected ? (
-                    <button className="wallet-connect-btn" onClick={openConnectModal}>
-                      <span className="wallet-icon">⬡</span>
-                      Connect Wallet
-                    </button>
+                    <div className="liquid-border-wrap">
+                      <button className="wallet-connect-btn" onClick={openConnectModal}>
+                        <span className="wallet-icon">⬡</span>
+                        Connect Wallet
+                      </button>
+                    </div>
                   ) : chain.unsupported ? (
                     <button className="wallet-wrong-chain" onClick={openChainModal}>
                       ⚠ Wrong Network
@@ -221,10 +371,13 @@ export default function Home() {
       <section className="hero">
         <div className="hero-badge">🌸 Next-Gen Autonomous Art Studio</div>
 
-        <h1 className="hero-title">
-          <span className="line-1 glitch" data-text="BLOOM">BLOOM</span>
-          <span className="line-2">NFT STUDIO</span>
-        </h1>
+        {/* Mouse-reactive parallax wrapper */}
+        <div ref={heroTitleRef} style={{ transition: 'transform 0.12s ease-out' }}>
+          <h1 className="hero-title">
+            <span className="line-1 glitch" data-text="BLOOM">BLOOM</span>
+            <span className="line-2">NFT STUDIO</span>
+          </h1>
+        </div>
 
         <p className="hero-sub">{COMPANY.description}</p>
 
@@ -235,7 +388,7 @@ export default function Home() {
           </button>
         </div>
 
-        {/* ── Commission CTA ── */}
+        {/* Commission CTA */}
         <div className="commission-hero-cta">
           <button
             className={`commission-orb-btn ${!walletConnected ? 'disabled' : ''}`}
@@ -276,6 +429,23 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ════════════════════ BLOOM SEQUENCE SIDEBAR ════════════════════ */}
+      {isSystemAwake && activeAgents.length > 0 && (
+        <aside className="bloom-sequence-sidebar" aria-label="Live agent activity">
+          <div className="bss-label">⚡ Live</div>
+          {activeAgents.map(a => {
+            const s = agentStatuses[a.id] || {};
+            return (
+              <div key={a.id} className="bss-row" style={{ '--bss-color': a.color }}>
+                <span className="bss-dot" style={{ background: a.color }} />
+                <span className="bss-agent">{a.emoji} {a.name}</span>
+                <span className="bss-msg">{s.message?.slice(0, 38) || s.action}</span>
+              </div>
+            );
+          })}
+        </aside>
+      )}
+
       {/* ════════════════════ LIVE OFFICE ════════════════════ */}
       <section id="office" className="section office-section">
         <div className="section-header">
@@ -302,42 +472,51 @@ export default function Home() {
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(2,0,12,0.58)', zIndex: 1 }} />
             <img src={BG} alt="AI Office Background" className="bg" style={{ opacity: 0.55 }} />
 
-            {AGENTS_CONFIG.map((agent) => {
-              let status = agentStatuses[agent.id] || { action: 'Sleeping', message: 'Resting...' };
-              if (!isSystemAwake) status = { action: 'Sleeping', message: 'Resting...' };
-              const isActive = status.action !== 'Sleeping' && !status.action.toLowerCase().includes('offline');
-
+            {AGENTS_CONFIG.map((agent, index) => {
+              const agentStatus = isSystemAwake
+                ? (agentStatuses[agent.id] || { action: 'Sleeping', message: 'Resting...' })
+                : { action: 'Sleeping', message: 'Resting...' };
               return (
-                <div
+                <AgentCard
                   key={agent.id}
-                  className="agent-pin"
-                  style={{
-                    top: agent.position.top,
-                    left: agent.position.left,
-                    zIndex: 2,
-                    animation: isActive ? 'agentBounce .6s infinite alternate' : 'none',
-                  }}
-                >
-                  {isActive && (
-                    <div className="speech-bubble" style={{ borderColor: agent.color, boxShadow: `0 0 18px ${agent.color}55` }}>
-                      <div className="bubble-action" style={{ color: agent.color }}>{status.action}</div>
-                      <div className="bubble-msg">{status.message}</div>
-                    </div>
-                  )}
-                  <img
-                    className={`agent-avatar ${isActive ? 'active' : 'sleeping'}`}
-                    style={{ filter: isActive ? `drop-shadow(0 0 12px ${agent.color})` : 'none' }}
-                    src={`https://api.dicebear.com/9.x/pixel-art/svg?seed=${agent.seed}&backgroundColor=000000&glassesProbability=${agent.id === "Manager" ? 100 : 0}`}
-                    alt={agent.name}
-                  />
-                  <span className="agent-badge" style={{ background: agent.color + '22', color: agent.color, border: `1px solid ${agent.color}44` }}>
-                    {agent.emoji} {agent.role}
-                  </span>
-                  <div className="agent-name">{agent.name}</div>
-                </div>
+                  agent={agent}
+                  status={agentStatus}
+                  isSystemAwake={isSystemAwake}
+                  index={index}
+                />
               );
             })}
           </div>
+
+          {/* ── LIVE CHAT FEED (Delayed Drip) ── */}
+          <div className="live-chat-wrap reveal" ref={addReveal}>
+            <div className="live-chat-header">
+              <span className="live-chat-title">⑆ Atelier Comms Feed</span>
+              <span className="live-chat-sync">Sync: +5000ms delay</span>
+            </div>
+            <div className="live-chat-feed">
+              {chatLog.length === 0 && !isTyping && (
+                <div className="chat-empty">Listening for agent activity...</div>
+              )}
+              {chatLog.map((msg, i) => (
+                <div key={msg.id || i} className="chat-line">
+                  <span className="chat-time">[{msg.time}]</span>
+                  <span className="chat-agent" style={{ color: msg.color }}>{msg.agent}:</span>
+                  <span className="chat-action">{msg.action}</span>
+                  {msg.message && <span className="chat-msg">— {msg.message}</span>}
+                </div>
+              ))}
+              {isTyping && (
+                <div className="chat-line typing-line">
+                  <span className="chat-time">[{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}]</span>
+                  <span className="chat-typing-dots">
+                    <span className="dot">.</span><span className="dot">.</span><span className="dot">.</span>
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -357,57 +536,89 @@ export default function Home() {
           <div className="section-tag reveal" ref={addReveal}>The Collection</div>
           <h2 className="section-title reveal" ref={addReveal}>🌸 BLOOM NFT Drops</h2>
           <p className="section-desc reveal" ref={addReveal}>
-            Each piece is autonomously conceived, created, and published. Every image is one-of-a-kind.
+            Each piece is autonomously conceived, created, and published by AI. Every image is one&#8209;of&#8209;a&#8209;kind.
           </p>
           <div className="section-divider" />
         </div>
 
         {gallery.length > 0 ? (
-          <div className="gallery-layout">
+          <div className="museum-layout reveal" ref={addReveal}>
+
+            {/* ── WALL RAIL HEADER ── */}
+            <div className="museum-wall-rail">
+              <span className="rail-label">EXHIBITION 01</span>
+              <div className="rail-line" />
+            </div>
+
+            {/* ── FEATURED WALL (Latest Drop) ── */}
             {featured && (
-              <article className="gallery-featured reveal" ref={addReveal} onClick={() => openLightbox(featured, 0)} style={{ '--delay': '0s' }}>
-                <div className="gallery-featured-img-wrap">
-                  <img className="gallery-featured-img" src={featured.image} alt={featured.description || 'Drop #1'} loading="lazy" />
-                  <div className="gallery-featured-overlay">
-                    <div className="gallery-featured-badge">✦ Featured Drop</div>
-                    <div className="gallery-featured-info">
-                      <p className="gallery-featured-title">{featured.description || 'Drop #1'}</p>
-                      <p className="gallery-featured-date">{featured.date || '—'}</p>
-                    </div>
-                    <div className="gallery-featured-price">◈ {featured.price || '1.0 ETH'}</div>
+              <div className="museum-feature-wall">
+                <article
+                  className="museum-masterpiece"
+                  onClick={() => openLightbox(featured, 0)}
+                >
+                  <div className="masterpiece-frame">
+                    <img
+                      className="masterpiece-img"
+                      src={featured.image}
+                      alt={featured.description || 'Genesis Drop'}
+                      loading="lazy"
+                    />
+                    <div className="masterpiece-shimmer" />
+                    <div className="masterpiece-badge">LATEST ACQUISITION</div>
                   </div>
-                  <div className="shimmer-bar" />
+                </article>
+                
+                <div className="masterpiece-plaque">
+                  <div className="plaque-header">
+                    <span className="plaque-chain">⟠ Ethereum</span>
+                    <span className="plaque-edition">Unique 1/1</span>
+                  </div>
+                  <h3 className="plaque-title">{featured.description || 'Genesis Drop'}</h3>
+                  <div className="plaque-meta">
+                    <p className="plaque-date">{featured.date || '—'}</p>
+                    <p className="plaque-artist">Autonomously generated by BLOOM Studio</p>
+                  </div>
+                  <div className="plaque-footer">
+                    <div className="plaque-price">◈ {featured.price || '1.0 ETH'}</div>
+                    <button className="plaque-btn" onClick={() => openLightbox(featured, 0)}>Inspect Work ↗</button>
+                  </div>
                 </div>
-                <div className="gallery-featured-footer">
-                  <span className="bloom-badge">🌸 BLOOM NFT</span>
-                  <span className="art-edition-lg">1 of 1</span>
-                </div>
-              </article>
+              </div>
             )}
+
+            {/* ── MASONRY GALLERY ROW ── */}
             {rest.length > 0 && (
-              <div className="gallery-masonry">
+              <div className="museum-masonry">
                 {rest.map((art, i) => (
                   <article
                     key={i + 1}
-                    className="art-card reveal"
-                    ref={addReveal}
-                    style={{ '--delay': `${(i % 4) * 0.1}s` }}
+                    className="museum-card reveal"
+                    ref={el => {
+                      addReveal(el);
+                      if (el) galleryCardsRef.current[i + 1] = el;
+                    }}
+                    style={{ '--reveal-delay': `${(i % 4) * 0.12}s` }}
                     onClick={() => openLightbox(art, i + 1)}
+                    onMouseMove={e => handleCardTilt(e, i + 1)}
+                    onMouseLeave={() => resetCardTilt(i + 1)}
                   >
-                    <div className="art-card-img-wrap">
-                      <img className="art-card-img" src={art.image} alt={art.description || `Art Drop #${i + 2}`} loading="lazy" />
-                      <div className="art-card-overlay">
-                        <span className="overlay-tag">✦ AI Generated</span>
+                    <div className="museum-card-frame">
+                      <img
+                        className="museum-card-img"
+                        src={art.image}
+                        alt={art.description || `Drop #${i + 2}`}
+                        loading="lazy"
+                      />
+                      <div className="museum-card-shimmer" />
+                    </div>
+                    <div className="museum-card-plaque">
+                      <div className="plaque-num">No. {String(i + 2).padStart(3, '0')}</div>
+                      <h4 className="plaque-sm-title">{art.description || `Drop #${i + 2}`}</h4>
+                      <div className="plaque-sm-footer">
+                        <span className="plaque-sm-date">{art.date || '—'}</span>
+                        <span className="plaque-sm-price">◈ {art.price || '1.0 ETH'}</span>
                       </div>
-                      <div className="shimmer-bar" />
-                    </div>
-                    <div className="art-card-body">
-                      <p className="art-card-title">{art.description || `Drop #${i + 2}`}</p>
-                      <p className="art-card-date">{art.date || "—"}</p>
-                    </div>
-                    <div className="art-card-footer">
-                      <span className="art-price">◈ {art.price || "1.0 ETH"}</span>
-                      <span className="bloom-pill">🌸 BLOOM</span>
                     </div>
                   </article>
                 ))}
@@ -458,6 +669,94 @@ export default function Home() {
         @keyframes agentBounce {
           from { margin-top: 0; }
           to   { margin-top: -14px; }
+        }
+
+        /* ── In-page Wakeup Toast ── */
+        .site-toast {
+          position: fixed;
+          bottom: 32px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 9999;
+          min-width: 320px;
+          max-width: 540px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 16px 22px;
+          border-radius: 14px;
+          font-size: 14px;
+          font-weight: 600;
+          backdrop-filter: blur(20px);
+          box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+          animation: toastIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        .site-toast--info    { background: rgba(0,200,255,0.12); border: 1px solid rgba(0,200,255,0.35); color: #7df4ff; }
+        .site-toast--success { background: rgba(0,255,136,0.1);  border: 1px solid rgba(0,255,136,0.35); color: #5dffc4; }
+        .site-toast--error   { background: rgba(255,50,80,0.12); border: 1px solid rgba(255,50,80,0.35);  color: #ff8080; }
+        .toast-msg { flex: 1; line-height: 1.5; }
+        .toast-close {
+          background: none; border: none; color: inherit;
+          font-size: 16px; cursor: pointer; opacity: 0.7;
+          transition: opacity 0.2s; flex-shrink: 0;
+        }
+        .toast-close:hover { opacity: 1; }
+
+        /* ── Bloom Sequence Sidebar ── */
+        .bloom-sequence-sidebar {
+          position: fixed;
+          right: 18px;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 90;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          max-width: 230px;
+          pointer-events: none;
+        }
+        .bss-label {
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          color: #ff6ec7;
+          margin-bottom: 4px;
+          text-shadow: 0 0 10px #ff6ec788;
+        }
+        .bss-row {
+          background: rgba(8, 4, 22, 0.78);
+          backdrop-filter: blur(16px);
+          border: 1px solid var(--bss-color, #ff6ec7);
+          border-radius: 12px;
+          padding: 7px 12px;
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          font-size: 11px;
+          box-shadow: 0 0 12px color-mix(in srgb, var(--bss-color, #ff6ec7) 30%, transparent);
+          animation: bssSlideIn 0.4s ease;
+        }
+        @keyframes bssSlideIn {
+          from { opacity: 0; transform: translateX(20px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        .bss-dot {
+          width: 7px; height: 7px;
+          border-radius: 50%;
+          flex-shrink: 0;
+          animation: agentHeartbeat 2s ease-in-out infinite;
+        }
+        .bss-agent { font-weight: 700; color: #fff; white-space: nowrap; }
+        .bss-msg   { color: #8a80a8; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        @media (max-width: 900px) {
+          .bloom-sequence-sidebar { display: none; }
         }
       `}</style>
     </>
