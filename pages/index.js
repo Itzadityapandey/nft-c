@@ -112,6 +112,12 @@ export default function Home() {
           setIsTyping(true);
         }
 
+        // Trigger gallery live-reload if System says "Success" 
+        // (with a small 3-second delay to ensure GitHub Pages cache clears)
+        if (data.System?.action?.includes("Success")) {
+          setTimeout(() => fetchGallery(), 3000);
+        }
+
         if (data.Manager?.action?.includes("Success") || data.Manager?.action?.includes("updated")) {
           setLastDropTime(new Date().toLocaleTimeString());
         }
@@ -144,11 +150,16 @@ export default function Home() {
   }, []);
 
   /* Gallery from GitHub */
-  useEffect(() => {
-    fetch("https://raw.githubusercontent.com/Itzadityapandey/nft-c/main/database.json")
+  const fetchGallery = () => {
+    // Append timestamp to break GitHub raw cache
+    fetch(`https://raw.githubusercontent.com/Itzadityapandey/nft-c/main/database.json?t=${new Date().getTime()}`)
       .then(r => r.ok ? r.json() : [])
       .then(d => setGallery(Array.isArray(d) ? [...d].reverse() : []))
       .catch(() => { });
+  };
+
+  useEffect(() => {
+    fetchGallery();
   }, []);
 
   /* Mouse-reactive parallax on hero title */
