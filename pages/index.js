@@ -52,6 +52,7 @@ export default function Home() {
   };
   const [lightbox, setLightbox] = useState(null);
   const [showCommission, setShowCommission] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
   
   /* Chat Drip State */
   const [chatLog, setChatLog] = useState([]);
@@ -282,7 +283,9 @@ export default function Home() {
   const openLightbox = (art, index) => setLightbox({ art, index });
   const closeLightbox = () => setLightbox(null);
 
-  const [featured, ...rest] = gallery;
+  const [featured, ...allRest] = gallery;
+  const visibleRest  = allRest.slice(0, 8);   // 8 masonry cards → 9 total with featured
+  const archiveItems = allRest.slice(8);       // everything beyond #9
 
   /* Active agents for Bloom Sequence sidebar */
   const activeAgents = AGENTS_CONFIG.filter(a => {
@@ -598,10 +601,10 @@ export default function Home() {
               </div>
             )}
 
-            {/* ── MASONRY GALLERY ROW ── */}
-            {rest.length > 0 && (
+            {/* ── MASONRY GALLERY ROW (first 8 after featured) ── */}
+            {visibleRest.length > 0 && (
               <div className="museum-masonry">
-                {rest.map((art, i) => (
+                {visibleRest.map((art, i) => (
                   <article
                     key={i + 1}
                     className="museum-card reveal"
@@ -633,6 +636,44 @@ export default function Home() {
                     </div>
                   </article>
                 ))}
+              </div>
+            )}
+
+            {/* ── ARCHIVE VAULT (everything beyond 9) ── */}
+            {archiveItems.length > 0 && (
+              <div className="archive-section">
+                <button
+                  className="archive-toggle"
+                  onClick={() => setShowArchive(v => !v)}
+                >
+                  <span className="archive-toggle-icon">{showArchive ? '▲' : '▼'}</span>
+                  {showArchive ? 'Hide' : 'Expand'} Archive
+                  <span className="archive-count">{archiveItems.length} works</span>
+                </button>
+
+                {showArchive && (
+                  <div className="archive-grid">
+                    {archiveItems.map((art, i) => (
+                      <div
+                        key={i + 9}
+                        className="archive-item"
+                        onClick={() => openLightbox(art, i + 9)}
+                      >
+                        <img
+                          className="archive-thumb"
+                          src={art.image}
+                          alt={art.description || `Drop #${i + 10}`}
+                          loading="lazy"
+                        />
+                        <div className="archive-item-info">
+                          <span className="archive-item-num">No. {String(i + 10).padStart(3, '0')}</span>
+                          <span className="archive-item-title">{art.description || `Drop #${i + 10}`}</span>
+                          <span className="archive-item-price">◈ {art.price || '1.0 ETH'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -769,6 +810,90 @@ export default function Home() {
         @media (max-width: 900px) {
           .bloom-sequence-sidebar { display: none; }
         }
+
+        /* ── Archive Vault ── */
+        .archive-section {
+          margin-top: 48px;
+          border-top: 1px solid rgba(0,200,255,0.12);
+          padding-top: 32px;
+        }
+        .archive-toggle {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          background: rgba(0,200,255,0.04);
+          border: 1px solid rgba(0,200,255,0.18);
+          border-radius: 12px;
+          color: rgba(200,230,255,0.7);
+          font-size: 13px;
+          font-weight: 600;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+          padding: 12px 24px;
+          cursor: pointer;
+          transition: all 0.25s ease;
+          backdrop-filter: blur(10px);
+          margin: 0 auto 32px;
+        }
+        .archive-toggle:hover {
+          background: rgba(0,200,255,0.10);
+          border-color: rgba(0,200,255,0.45);
+          color: #7df4ff;
+          box-shadow: 0 0 20px rgba(0,200,255,0.15);
+        }
+        .archive-toggle-icon { font-size: 10px; opacity: 0.6; }
+        .archive-count {
+          margin-left: auto;
+          font-size: 11px;
+          opacity: 0.5;
+          font-weight: 400;
+          font-style: italic;
+        }
+        .archive-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 16px;
+          animation: archiveFadeIn 0.4s ease;
+        }
+        @keyframes archiveFadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .archive-item {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          cursor: pointer;
+          border-radius: 10px;
+          overflow: hidden;
+          background: rgba(255,255,255,0.02);
+          border: 1px solid rgba(255,255,255,0.06);
+          transition: border-color 0.2s, transform 0.2s;
+        }
+        .archive-item:hover {
+          border-color: rgba(0,200,255,0.3);
+          transform: translateY(-3px);
+        }
+        .archive-thumb {
+          width: 100%;
+          aspect-ratio: 1;
+          object-fit: cover;
+          display: block;
+          filter: saturate(0.8) brightness(0.85);
+          transition: filter 0.25s;
+        }
+        .archive-item:hover .archive-thumb {
+          filter: saturate(1) brightness(1);
+        }
+        .archive-item-info {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          padding: 0 12px 12px;
+        }
+        .archive-item-num  { font-size: 10px; color: rgba(0,200,255,0.5); font-weight: 700; letter-spacing: 1px; }
+        .archive-item-title { font-size: 11px; color: rgba(200,220,255,0.75); line-height: 1.4; }
+        .archive-item-price { font-size: 11px; color: rgba(255,200,100,0.6); margin-top: 2px; }
       `}</style>
     </>
   );
