@@ -2948,3 +2948,199 @@ body {
     text-align: center;
   }
 }
+/* -----------------------------------------------------------
+   ANTIGRAVITY GALLERY (Showcasing max 9 items)
+   ----------------------------------------------------------- */
+
+.ag-gallery-wrap {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 0;
+  perspective: 1200px;
+}
+
+.ag-canvas {
+  position: relative;
+  border-radius: 4px; /* Minimalist sharp edges typical in high-end galleries */
+  cursor: pointer;
+  /* The float animation with staggered delays */
+  animation: agFloat 8s ease-in-out infinite alternate;
+  animation-delay: var(--float-offset, 0s);
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ag-canvas:hover {
+  transform: translateY(-15px) rotateX(2deg) rotateY(-2deg) scale(1.02);
+  z-index: 10;
+}
+
+/* -- Glow Underlay (Neon cyan and plasma purple) -- */
+.ag-glow-underlay {
+  position: absolute;
+  inset: -15px;
+  background: radial-gradient(circle at 50% 100%, rgba(0, 240, 255, 0.15), rgba(144, 0, 255, 0.05) 50%, transparent 70%);
+  filter: blur(20px);
+  z-index: 0;
+  opacity: 0.5;
+  transition: opacity 0.5s, inset 0.5s;
+}
+
+.ag-canvas:hover .ag-glow-underlay {
+  opacity: 0.9;
+  inset: -25px;
+  background: radial-gradient(circle at 50% 100%, rgba(0, 240, 255, 0.3), rgba(144, 0, 255, 0.15) 50%, transparent 70%);
+}
+
+.ag-canvas-inner {
+  position: relative;
+  z-index: 1;
+  background: rgba(10, 10, 15, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 2px solid rgba(0, 240, 255, 0.3); /* Under-lighting accent */
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ag-art-img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+  opacity: 0.95;
+  transition: opacity 0.4s, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ag-canvas:hover .ag-art-img {
+  opacity: 1;
+  transform: scale(1.03);
+}
+
+.ag-canvas-frosting {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 50%, rgba(5, 5, 7, 0.9) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* -- Minimalist Info Overlay -- */
+.ag-art-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transform: translateY(10px);
+  opacity: 0.8;
+  transition: transform 0.4s, opacity 0.4s;
+}
+
+.ag-canvas:hover .ag-art-info {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.ag-art-num {
+  font-family: "Space Grotesk", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--neon-cyan);
+  letter-spacing: 2px;
+}
+
+.ag-art-title {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+}
+
+.ag-art-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.ag-art-price {
+  font-family: "Space Grotesk", monospace;
+  font-size: 14px;
+  font-weight: 800;
+  color: #a1a1aa;
+}
+
+/* -- Float Animation -- */
+@keyframes agFloat {
+  0% { transform: translateY(0px); }
+  100% { transform: translateY(-16px); }
+}
+
+/* -- Toggle Actions -- */
+.ag-gallery-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 60px;
+}
+
+.ag-toggle-btn {
+  position: relative;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 14px 32px;
+  border-radius: 50px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s;
+}
+
+.ag-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.ag-toggle-icon {
+  color: var(--neon-cyan);
+  font-weight: 400;
+}
+
+.ag-btn-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, rgba(0, 240, 255, 0.2), transparent 70%);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.5s;
+  pointer-events: none;
+}
+
+.ag-toggle-btn:hover .ag-btn-glow {
+  transform: translate(-50%, -50%) scale(2);
+}
+
