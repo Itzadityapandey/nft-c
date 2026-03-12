@@ -46,14 +46,13 @@ export default function Home() {
 
   /* In-page toast for wakeup/stop responses */
   const [toast, setToast] = useState(null); // { type: 'success'|'error'|'info', msg }
-  const [showAllGallery, setShowAllGallery] = useState(false);
   const showToast = (type, msg) => {
     setToast({ type, msg });
     setTimeout(() => setToast(null), 5000);
   };
   const [lightbox, setLightbox] = useState(null);
   const [showCommission, setShowCommission] = useState(false);
-  
+
   /* Chat Drip State */
   const [chatLog, setChatLog] = useState([]);
   const pendingChat = useRef([]);
@@ -75,22 +74,22 @@ export default function Home() {
       if (data) {
         setIsConnected(true);
         setAgentStatuses(data);
-        
+
         let newMessages = false;
-        
+
         // Add new actions to pending queue
         Object.keys(data).forEach(agentId => {
           if (agentId === 'System') return; // Skip system messages in chat
-          
+
           const agentData = data[agentId];
           if (!agentData || agentData.action === 'Sleeping' || agentData.action === 'idle') return;
-          
+
           // Create a unique key for this exact message state
           const msgKey = `${agentId}-${agentData.action}-${agentData.message || ''}`;
-          
+
           if (!processedKeys.current.has(msgKey)) {
             processedKeys.current.add(msgKey);
-            
+
             // On initial load, don't queue everything to avoid a massive backlog
             if (!initialLoadRef.current) {
               const fullAgentInfo = AGENTS_CONFIG.find(a => a.id === agentId);
@@ -132,14 +131,14 @@ export default function Home() {
       if (pendingChat.current.length > 0) {
         // Pop the oldest message
         const nextMsg = pendingChat.current.shift();
-        
+
         setChatLog(prev => {
           // Keep last 8 messages max so it doesn't grow forever
           const updated = [...prev, nextMsg];
           if (updated.length > 8) return updated.slice(updated.length - 8);
           return updated;
         });
-        
+
         // If more messages are pending, stay typing. Otherwise, stop.
         setIsTyping(pendingChat.current.length > 0);
       } else {
@@ -284,6 +283,11 @@ export default function Home() {
   const closeLightbox = () => setLightbox(null);
 
   const [featured, ...rest] = gallery;
+
+  /* Carousel state */
+  const [carouselIdx, setCarouselIdx] = useState(0);
+  const prevSlide = () => setCarouselIdx(i => (i - 1 + rest.length) % rest.length);
+  const nextSlide = () => setCarouselIdx(i => (i + 1) % rest.length);
 
   /* Active agents for Bloom Sequence sidebar */
   const activeAgents = AGENTS_CONFIG.filter(a => {
@@ -504,14 +508,17 @@ export default function Home() {
           <div className="live-chat-wrap reveal" ref={addReveal}>
             <div className="live-chat-header">
               <span className="live-chat-title">⑆ Atelier Comms Feed</span>
-              <span className="live-chat-sync">Sync: +5000ms delay</span>
+              <span className="live-chat-live-dot">
+                <span className="lcd-ring" />
+                <span className="lcd-core" />
+              </span>
             </div>
             <div className="live-chat-feed">
               {chatLog.length === 0 && !isTyping && (
                 <div className="chat-empty">Listening for agent activity...</div>
               )}
               {chatLog.map((msg, i) => (
-                <div key={msg.id || i} className="chat-line">
+                <div key={msg.id || i} className="chat-line" style={{ '--chat-color': msg.color }}>
                   <span className="chat-time">[{msg.time}]</span>
                   <span className="chat-agent" style={{ color: msg.color }}>{msg.agent}:</span>
                   <span className="chat-action">{msg.action}</span>
@@ -556,63 +563,123 @@ export default function Home() {
         {gallery.length > 0 ? (
           <div className="museum-layout reveal" ref={addReveal}>
 
-            {/* ── ANTIGRAVITY GALLERY ── */}
-            <div className="ag-gallery-wrap">
-              {gallery.slice(0, showAllGallery ? gallery.length : 9).map((art, i) => (
-                <article
-                  key={art.id || i}
-                  className="ag-canvas reveal"
-                  ref={addReveal}
-                  style={{
-                    '--reveal-delay': `${(i % 9) * 0.1}s`,
-                    '--float-offset': `${(i % 3) * 2}s`
-                  }}
-                  onClick={() => openLightbox(art, i)}
-                >
-                  <div className="ag-canvas-inner">
-                    <img
-                      className="ag-art-img"
-                      src={art.image}
-                      alt={art.description || `Artwork ${i + 1}`}
-                      loading="lazy"
-                    />
-                    <div className="ag-glow-underlay" />
-                    <div className="ag-canvas-frosting" />
-                    
-                    <div className="ag-art-info">
-                      <div className="ag-art-num">Nº {String(gallery.length - i).padStart(3, '0')}</div>
-                      <h4 className="ag-art-title">{art.description || `Drop #${gallery.length - i}`}</h4>
-                      <div className="ag-art-meta">
-                        <span className="ag-art-price">◈ {art.price || '1.0 ETH'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              ))}
+            {/* ── WALL RAIL HEADER ── */}
+            <div className="museum-wall-rail">
+              <span className="rail-label">EXHIBITION 01</span>
+              <div className="rail-line" />
             </div>
 
-            {/* Pagination / Show More */}
-            {gallery.length > 9 && (
-              <div className="ag-gallery-actions reveal" ref={addReveal}>
-                <button 
-                  className="ag-toggle-btn"
-                  onClick={() => setShowAllGallery(!showAllGallery)}
+            {/* ── FEATURED WALL (Latest Drop) ── */}
+            {featured && (
+              <div className="museum-feature-wall">
+                <article
+                  className="museum-masterpiece"
+                  onClick={() => openLightbox(featured, 0)}
                 >
-                  {showAllGallery ? (
-                    <><span className="ag-toggle-icon">↑</span> Collapse to Void</>
-                  ) : (
-                    <><span className="ag-toggle-icon">↓</span> Reveal Infinite Space ({gallery.length - 9} hidden)</>
-                  )}
-                  <div className="ag-btn-glow" />
-                </button>
+                  <div className="masterpiece-frame">
+                    <img
+                      className="masterpiece-img"
+                      src={featured.image}
+                      alt={featured.description || 'Genesis Drop'}
+                      loading="lazy"
+                    />
+                    <div className="masterpiece-shimmer" />
+                    <div className="masterpiece-badge">LATEST ACQUISITION</div>
+                  </div>
+                </article>
+
+                <div className="masterpiece-plaque">
+                  <div className="plaque-header">
+                    <span className="plaque-chain">⟠ Ethereum</span>
+                    <span className="plaque-edition">Unique 1/1</span>
+                  </div>
+                  <h3 className="plaque-title">{featured.description || 'Genesis Drop'}</h3>
+                  <div className="plaque-meta">
+                    <p className="plaque-date">{featured.date || '—'}</p>
+                    <p className="plaque-artist">Autonomously generated by BLOOM Studio</p>
+                  </div>
+                  <div className="plaque-footer">
+                    <div className="plaque-price">◈ {featured.price || '1.0 ETH'}</div>
+                    <button className="plaque-btn" onClick={() => openLightbox(featured, 0)}>Inspect Work ↗</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── CAROUSEL GALLERY ── */}
+            {rest.length > 0 && (
+              <div className="gallery-carousel-section">
+                <div className="carousel-rail-label">
+                  <span>⬡ The Collection</span>
+                  <span className="carousel-counter">{carouselIdx + 1} / {rest.length}</span>
+                </div>
+
+                <div className="gallery-carousel-wrap">
+                  <div className="carousel-track">
+                    {rest.map((art, i) => {
+                      const offset = i - carouselIdx;
+                      // Wrap-around distance
+                      const wrapOffset = ((offset + rest.length + Math.floor(rest.length / 2)) % rest.length) - Math.floor(rest.length / 2);
+                      let slideClass = 'carousel-slide';
+                      if (wrapOffset === 0) slideClass += ' active';
+                      else if (wrapOffset === -1) slideClass += ' side side-left';
+                      else if (wrapOffset === 1) slideClass += ' side side-right';
+                      else slideClass += ' hidden';
+
+                      return (
+                        <article
+                          key={i}
+                          className={slideClass}
+                          onClick={() => {
+                            if (wrapOffset === 0) openLightbox(art, i + 1);
+                            else if (wrapOffset < 0) prevSlide();
+                            else nextSlide();
+                          }}
+                        >
+                          <div className="carousel-card-frame">
+                            <img
+                              className="carousel-card-img"
+                              src={art.image}
+                              alt={art.description || `Drop #${i + 2}`}
+                              loading="lazy"
+                              draggable={false}
+                            />
+                            <div className="carousel-card-shimmer" />
+                            {wrapOffset === 0 && (
+                              <div className="carousel-card-overlay">
+                                <span className="carousel-card-num">No. {String(i + 2).padStart(3, '0')}</span>
+                                <span className="carousel-expand-icon">↗</span>
+                              </div>
+                            )}
+                          </div>
+                          {wrapOffset === 0 && (
+                            <div className="carousel-card-plaque">
+                              <h4 className="carousel-plaque-title">{art.description || `Drop #${i + 2}`}</h4>
+                              <div className="carousel-plaque-footer">
+                                <span>{art.date || '—'}</span>
+                                <span className="carousel-plaque-price">◈ {art.price || '1.0 ETH'}</span>
+                              </div>
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* ── NAV ARROWS ── */}
+                <div className="carousel-nav">
+                  <button className="carousel-nav-btn" onClick={prevSlide} aria-label="Previous">←</button>
+                  <button className="carousel-nav-btn" onClick={nextSlide} aria-label="Next">→</button>
+                </div>
               </div>
             )}
           </div>
         ) : (
           <div className="gallery-empty reveal" ref={addReveal}>
-            <span className="gallery-empty-icon">🌌</span>
-            The void is empty.<br />
-            Wake the collective to manifest the first concept.
+            <span className="gallery-empty-icon">🌸</span>
+            No drops yet.<br />
+            Wake up the agents to create the first masterpiece!
           </div>
         )}
       </section>

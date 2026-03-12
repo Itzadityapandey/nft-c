@@ -13,3 +13,6 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+
+# Backend secrets
+backend/moltbook_credentials.json
